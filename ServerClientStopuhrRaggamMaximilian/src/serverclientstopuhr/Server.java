@@ -5,55 +5,44 @@
  */
 package serverclientstopuhr;
 
+import com.google.gson.Gson;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.time.Instant;
 import java.util.ArrayList;
+import java.util.List;
+
 
 /**
  *
- * @author maxim
+ * @author Christoph-PC
  */
 public class Server {
-    private ServerSocket serverSocket;
-    private final ArrayList<ConnectionHandler> handlers = new ArrayList<ConnectionHandler>();
+    private ServerSocket serversocket;
+    private final List<ConnectionHandler> handlers = new ArrayList<>();
     private long timeOffset;
     private long startMillis;
-    
-    public void start(int port) throws IOException{
-        timeOffset = 0;
-        startMillis = System.currentTimeMillis();
-        serverSocket = new ServerSocket(port);
-        final Socket clientSocket = serverSocket.accept();
-        ConnectionHandler handler = new ConnectionHandler(clientSocket);
-        Socket socket = null;
-        
-        while(true){
-            socket = serverSocket.accept();
-            if(handlers.size() == 3){
-                for(ConnectionHandler h : handlers){
-                    h.isClosed();
+
+    public void start(int port) throws IOException {        
+        serversocket = new ServerSocket(port);
+        while(true) {
+            final Socket socket = serversocket.accept();
+            for(ConnectionHandler h : handlers) {
+                if(h.isClosed()) {
+                    handlers.remove(h);
                 }
-                socket.close();
+            }
+            if(handlers.size() == 3) {
+            	socket.close();
                 continue;
             }
+            final ConnectionHandler handler = new ConnectionHandler(socket);
             new Thread(handler).start();
             handlers.add(handler);
-            if(handlers.size() == 3){
-                serverSocket.close();
-            }else{
-                serverSocket.accept();
-            }
         }
-    }
-
-    public ServerSocket getServerSocket() {
-        return serverSocket;
-    }
-
-    public ArrayList<ConnectionHandler> getHandlers() {
-        return handlers;
     }
 
     public long getTimeOffset() {
@@ -63,9 +52,14 @@ public class Server {
     public long getStartMillis() {
         return startMillis;
     }
+    
 
-    public void setServerSocket(ServerSocket serverSocket) {
-        this.serverSocket = serverSocket;
+    public List<ConnectionHandler> getHandlers() {
+        return handlers;
+    }
+
+    public void setServersocket(ServerSocket serversocket) {
+        this.serversocket = serversocket;
     }
 
     public void setTimeOffset(long timeOffset) {
@@ -76,18 +70,21 @@ public class Server {
         this.startMillis = startMillis;
     }
     
-    public boolean isTimerRunning(){
-        if(startMillis == -1){
-            return false;
-        }else{
-            return true;
-        }
-    }
-    public long getTimerMillis(){
-        return timeOffset; 
+    
+    
+    public boolean isTimerRunning() {
+        return startMillis > 0;
     }
     
-    public static void main(String[] args) {
-        new Server();
+    public long getTimerMillis() {
+    	if(startMillis > 0) {
+            return System.currentTimeMillis() - startMillis + timeOffset;
+        } else {
+            return timeOffset;
+        }
     }
+    
+    public static void main(String[] args) throws IOException {
+        new Server().start(8080);
+    }    
 }
