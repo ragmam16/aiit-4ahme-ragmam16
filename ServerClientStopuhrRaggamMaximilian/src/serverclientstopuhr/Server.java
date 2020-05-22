@@ -29,19 +29,31 @@ public class Server {
     public void start(int port) throws IOException {        
         serversocket = new ServerSocket(port);
         while(true) {
+            while(true) {
             final Socket socket = serversocket.accept();
-            for(ConnectionHandler h : handlers) {
-                if(h.isClosed()) {
-                    handlers.remove(h);
+            synchronized(handlers) {
+                ConnectionHandler removeHandler = null;
+                boolean remove = false;
+                for(ConnectionHandler h : handlers) {
+                    if(h.isClosed()) {
+                        removeHandler = h;          
+                        remove = true;
+                    }
+                } 
+                if(remove){
+                    handlers.remove(removeHandler);
                 }
-            }
-            if(handlers.size() == 3) {
-            	socket.close();
-                continue;
+                if(handlers.size() == 3) {
+                    socket.close();
+                    continue;
+                }
             }
             final ConnectionHandler handler = new ConnectionHandler(socket);
             new Thread(handler).start();
-            handlers.add(handler);
+            synchronized(handler) {
+                handlers.add(handler);
+            }
+        }
         }
     }
 

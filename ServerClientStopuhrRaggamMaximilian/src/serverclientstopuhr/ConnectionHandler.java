@@ -78,7 +78,9 @@ public class ConnectionHandler implements Runnable{
                         if(r.isStop()) {
                             s.setStartMillis(0);
                         } else {
-                            s.setTimeOffset(System.currentTimeMillis() - s.getStartMillis() + s.getTimeOffset());
+                            if(s.isTimerRunning()){
+                                s.setTimeOffset(System.currentTimeMillis() - s.getStartMillis() + s.getTimeOffset());
+                            }
                         }
 
                         if(r.isClear()) {
@@ -107,6 +109,6 @@ public class ConnectionHandler implements Runnable{
                 } 
             }
         }
-    }
-    
 }
+    
+
